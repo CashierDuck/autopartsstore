@@ -154,7 +154,119 @@ function removeItem(partNumber) {
 }
 
 document.getElementById('checkout-btn').addEventListener('click', () => {
-  alert('Checkout coming soon!');
+  populateCheckoutSummary();
+  showPage('checkout');
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+});
+
+document.getElementById('back-to-cart-btn').addEventListener('click', () => {
+  showPage('cart');
+  document.querySelector('[data-page="cart"]').classList.add('active');
+});
+
+document.getElementById('conf-continue-btn').addEventListener('click', () => {
+  showPage('catalog');
+  document.querySelector('[data-page="catalog"]').classList.add('active');
+});
+
+function populateCheckoutSummary() {
+  const items = Object.values(cart);
+  const subtotal = items.reduce((sum, { part, qty }) => sum + part.price * qty, 0);
+  const shipping = calcShipping(items);
+  document.getElementById('co-subtotal').textContent = subtotal.toFixed(2);
+  document.getElementById('co-shipping').textContent = shipping.toFixed(2);
+  document.getElementById('co-total').textContent = (subtotal + shipping).toFixed(2);
+}
+
+document.getElementById('co-cc').addEventListener('input', e => {
+  let v = e.target.value.replace(/\D/g, '').slice(0, 16);
+  e.target.value = v.replace(/(.{4})/g, '$1 ').trim();
+});
+
+document.getElementById('co-exp').addEventListener('input', e => {
+  let v = e.target.value.replace(/\D/g, '').slice(0, 6);
+  if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+  e.target.value = v;
+});
+
+document.getElementById('checkout-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const errEl = document.getElementById('checkout-error');
+  errEl.classList.add('hidden');
+
+  const name    = document.getElementById('co-name').value.trim();
+  const email   = document.getElementById('co-email').value.trim();
+  const address = document.getElementById('co-address').value.trim();
+  const cc      = document.getElementById('co-cc').value.trim();
+  const exp     = document.getElementById('co-exp').value.trim();
+
+  if (!name || !email || !address || !cc || !exp) {
+    errEl.textContent = 'Please fill in all fields.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const items = Object.values(cart).map(({ part, qty }) => ({
+    number: part.number,
+    description: part.description,
+    price: part.price,
+    weight: part.weight,
+    qty,
+  }));
+
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const shipping = calcShipping(Object.values(cart));
+  const total = subtotal + shipping;
+
+  const btn = document.getElementById('place-order-btn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+
+  try {
+    const transId = `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+    const authResult = await creditCardAuthorization(transId, cc, name, exp, total.toFixed(2));
+
+    if (!authResult || authResult.startsWith('Error')) {
+      errEl.textContent = authResult || 'Payment declined. Please check your card details.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, address, cc, exp, items, authNumber: authResult }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Order failed. Please try again.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    Object.keys(cart).forEach(k => delete cart[k]);
+    updateCartCount();
+
+    let displayAuth = authResult;
+    try {
+      const parsed = JSON.parse(authResult);
+      if (parsed.authorization) displayAuth = parsed.authorization;
+    } catch { /* plain string */ }
+
+    document.getElementById('conf-order-id').textContent = data.orderId;
+    document.getElementById('conf-total').textContent = data.total;
+    document.getElementById('conf-auth').textContent = displayAuth;
+    showPage('confirmation');
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+  } catch (err) {
+    errEl.textContent = 'Could not connect to server. Please try again.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Place Order';
+  }
 });
 
 // Load catalog on startup

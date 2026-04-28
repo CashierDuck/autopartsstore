@@ -213,6 +213,134 @@ main {
 
 .cart-summary button:hover { background: #c73652; }
 
+/* Checkout */
+#checkout-page h2 { margin-bottom: 1.5rem; }
+
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .checkout-grid { grid-template-columns: 1fr; }
+}
+
+fieldset {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1.2rem;
+  background: white;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 0.4rem;
+  color: #1a1a2e;
+}
+
+fieldset label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+fieldset input, fieldset textarea {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  width: 100%;
+}
+
+fieldset input:focus, fieldset textarea:focus {
+  outline: none;
+  border-color: #1a1a2e;
+}
+
+.checkout-summary {
+  background: white;
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+  max-width: 360px;
+  margin-left: auto;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  margin-bottom: 1rem;
+}
+
+.checkout-summary p { margin-bottom: 0.4rem; }
+.checkout-summary .total { font-size: 1.1rem; font-weight: 700; margin-top: 0.5rem; }
+
+.checkout-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.checkout-actions button {
+  padding: 0.7rem 1.6rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+#back-to-cart-btn { background: #ccc; color: #333; }
+#back-to-cart-btn:hover { background: #bbb; }
+#place-order-btn { background: #e94560; color: white; }
+#place-order-btn:hover { background: #c73652; }
+#place-order-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+/* Confirmation */
+.confirmation-box {
+  background: white;
+  border-radius: 8px;
+  padding: 2.5rem;
+  max-width: 480px;
+  margin: 3rem auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  text-align: center;
+}
+
+.confirmation-box h2 {
+  color: #1a1a2e;
+  margin-bottom: 1.2rem;
+  font-size: 1.8rem;
+}
+
+.confirmation-box p {
+  margin-bottom: 0.6rem;
+  font-size: 1rem;
+  color: #444;
+}
+
+.conf-email-note {
+  color: #888;
+  font-size: 0.9rem !important;
+  margin-top: 0.8rem;
+}
+
+.confirmation-box button {
+  margin-top: 1.5rem;
+  padding: 0.7rem 2rem;
+  background: #1a1a2e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.confirmation-box button:hover { background: #e94560; }
+
 /* Utility */
 .hidden { display: none !important; }
 .loading, .empty-msg { color: #888; text-align: center; padding: 2rem; }

@@ -33,7 +33,7 @@
       </div>
     </section>
 
-    <!-- Cart / checkout page -->
+    <!-- Cart page -->
     <section id="cart-page" class="page">
       <h2>Your Cart</h2>
       <div id="cart-items">
@@ -47,8 +47,61 @@
       </div>
     </section>
 
+    <!-- Checkout page -->
+    <section id="checkout-page" class="page">
+      <h2>Checkout</h2>
+      <form id="checkout-form" novalidate>
+        <div class="checkout-grid">
+          <fieldset>
+            <legend>Contact & Shipping</legend>
+            <label>Full Name
+              <input type="text" id="co-name" required />
+            </label>
+            <label>Email
+              <input type="email" id="co-email" required />
+            </label>
+            <label>Shipping Address
+              <textarea id="co-address" rows="3" required></textarea>
+            </label>
+          </fieldset>
+          <fieldset>
+            <legend>Payment</legend>
+            <label>Card Number
+              <input type="text" id="co-cc" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" required />
+            </label>
+            <label>Expiration Date
+              <input type="text" id="co-exp" placeholder="MM/YYYY" maxlength="7" required />
+            </label>
+          </fieldset>
+        </div>
+        <div class="checkout-summary">
+          <p>Subtotal: $<span id="co-subtotal">0.00</span></p>
+          <p>Shipping: $<span id="co-shipping">0.00</span></p>
+          <p class="total">Total: $<span id="co-total">0.00</span></p>
+        </div>
+        <p id="checkout-error" class="error-msg hidden"></p>
+        <div class="checkout-actions">
+          <button type="button" id="back-to-cart-btn">Back to Cart</button>
+          <button type="submit" id="place-order-btn">Place Order</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Confirmation page -->
+    <section id="confirmation-page" class="page">
+      <div class="confirmation-box">
+        <h2>Order Placed!</h2>
+        <p>Order <strong>#<span id="conf-order-id"></span></strong> has been authorized.</p>
+        <p>Total charged: <strong>$<span id="conf-total"></span></strong></p>
+        <p>Authorization: <span id="conf-auth"></span></p>
+        <p class="conf-email-note">A confirmation email has been sent to you.</p>
+        <button id="conf-continue-btn">Continue Shopping</button>
+      </div>
+    </section>
+
   </main>
 
   <script src="/js/app.js"></script>
+  <script src="/js/cc-authorization.js"></script>
 </body>
 </html>
