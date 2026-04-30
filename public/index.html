@@ -9,26 +9,56 @@
 <body>
 
   <header>
-    <div class="header-inner">
-      <h1>Auto Parts Store</h1>
-      <nav>
-        <a href="#catalog" class="nav-link active" data-page="catalog">Browse Catalog</a>
-        <a href="#cart" class="nav-link" data-page="cart">Cart (<span id="cart-count">0</span>)</a>
-      </nav>
+    <div class="header-top">
+      <div class="header-inner">
+        <div class="logo nav-link" data-page="catalog" style="cursor:pointer">
+          <span class="logo-icon">⚙</span>
+          <span class="logo-text">AutoParts<span class="logo-accent">Store</span></span>
+        </div>
+        <div class="header-search">
+          <input type="text" id="search-input" placeholder="Search parts by name..." />
+          <button id="search-btn">Search</button>
+          <button id="clear-btn">Clear</button>
+        </div>
+        <div class="header-right">
+          <a href="#cart" class="cart-link nav-link" data-page="cart">
+            🛒 Cart (<span id="cart-count">0</span>)
+          </a>
+          <div class="menu-dropdown">
+            <button class="menu-btn">☰ Menu</button>
+            <div class="menu-items hidden">
+              <a href="#admin" class="nav-link menu-item" data-page="admin">Admin</a>
+              <a href="#warehouse" class="nav-link menu-item" data-page="warehouse">Warehouse</a>
+              <a href="#receiving" class="nav-link menu-item" data-page="receiving">Receiving</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+    <nav class="header-nav">
+      <div class="nav-inner">
+        <a href="#catalog" class="nav-link active" data-page="catalog">Browse Catalog</a>
+      </div>
+    </nav>
   </header>
 
   <main>
 
     <!-- Catalog page -->
     <section id="catalog-page" class="page active">
-      <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Search parts by name..." />
-        <button id="search-btn">Search</button>
-        <button id="clear-btn">Clear</button>
+      <div class="sort-bar">
+        <label>Sort by:
+          <select id="sort-select">
+            <option value="">Default</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="name-asc">Name: A–Z</option>
+            <option value="name-desc">Name: Z–A</option>
+          </select>
+        </label>
       </div>
-
-      <div id="catalog-grid" class="catalog-grid">
+      <div id="catalog-grid" class="catalog-grid"></div>
+      <div id="pagination" class="pagination">
         <p class="loading">Loading parts...</p>
       </div>
     </section>
@@ -87,6 +117,106 @@
       </form>
     </section>
 
+    <!-- Admin: manage orders -->
+    <section id="admin-page" class="page">
+      <h2>Manage Orders</h2>
+
+      <div class="filter-bar">
+        <select id="filter-status">
+          <option value="">All Statuses</option>
+          <option value="authorized">Authorized</option>
+          <option value="packed">Packed</option>
+          <option value="shipped">Shipped</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <input type="date" id="filter-from" placeholder="From" />
+        <input type="date" id="filter-to" placeholder="To" />
+        <input type="number" id="filter-min" placeholder="Min $" min="0" step="0.01" />
+        <input type="number" id="filter-max" placeholder="Max $" min="0" step="0.01" />
+        <button id="filter-btn">Filter</button>
+        <button id="filter-clear-btn">Clear</button>
+      </div>
+
+      <div id="orders-list"></div>
+
+      <!-- order detail modal -->
+      <div id="order-modal" class="modal hidden">
+        <div class="modal-box">
+          <button id="modal-close-btn" class="modal-close">×</button>
+          <h3>Order #<span id="modal-order-id"></span></h3>
+          <p><strong>Customer:</strong> <span id="modal-name"></span></p>
+          <p><strong>Email:</strong> <span id="modal-email"></span></p>
+          <p><strong>Address:</strong> <span id="modal-address"></span></p>
+          <p><strong>Status:</strong> <span id="modal-status"></span></p>
+          <p><strong>Date:</strong> <span id="modal-date"></span></p>
+          <table id="modal-items" class="items-table">
+            <thead><tr><th>Part</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p class="modal-total">Total: $<span id="modal-total"></span></p>
+          <button id="modal-cancel-btn" class="cancel-btn hidden">Cancel Order</button>
+        </div>
+      </div>
+
+      <!-- admin settings -->
+      <h2 style="margin-top:2rem">Shipping Rates</h2>
+      <div id="shipping-rates-list"></div>
+    </section>
+
+    <!-- Warehouse: pack and ship orders -->
+    <section id="warehouse-page" class="page">
+      <h2>Warehouse</h2>
+
+      <div class="warehouse-tabs">
+        <button class="tab-btn active" data-tab="pack-tab">Pack Orders</button>
+        <button class="tab-btn" data-tab="ship-tab">Ship Orders</button>
+      </div>
+
+      <div id="pack-tab" class="tab-content">
+        <h3>Orders Ready to Pack</h3>
+        <div id="pack-list"></div>
+
+        <div id="pack-detail" class="hidden">
+          <button id="back-to-pack-btn">← Back to list</button>
+          <h3>Order #<span id="pack-order-id"></span></h3>
+          <p><strong>Ship to:</strong> <span id="pack-address"></span></p>
+          <table class="items-table">
+            <thead><tr><th>Part</th><th>Part #</th><th>Qty</th></tr></thead>
+            <tbody id="pack-items"></tbody>
+          </table>
+          <div class="pack-actions">
+            <button onclick="window.print()">Print Packing List / Invoice</button>
+            <button id="mark-packed-btn">Mark as Packed</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="ship-tab" class="tab-content hidden">
+        <h3>Orders Ready to Ship</h3>
+        <div id="ship-list"></div>
+      </div>
+    </section>
+
+    <!-- Receiving: load inventory -->
+    <section id="receiving-page" class="page">
+      <h2>Receiving</h2>
+      <p>Log incoming products to update inventory.</p>
+
+      <form id="receiving-form" class="receiving-form">
+        <label>Part Number
+          <input type="number" id="recv-part" required />
+        </label>
+        <label>Quantity Received
+          <input type="number" id="recv-qty" min="1" required />
+        </label>
+        <button type="submit">Add to Inventory</button>
+      </form>
+      <p id="recv-msg" class="hidden"></p>
+
+      <h3 style="margin-top:2rem">Current Inventory</h3>
+      <div id="inventory-list"></div>
+    </section>
+
     <!-- Confirmation page -->
     <section id="confirmation-page" class="page">
       <div class="confirmation-box">
@@ -101,7 +231,23 @@
 
   </main>
 
+  <!-- Part preview modal -->
+  <div id="part-modal" class="modal hidden">
+    <div class="modal-box part-modal-box">
+      <button id="part-modal-close" class="modal-close">×</button>
+      <img id="part-modal-img" src="" alt="" />
+      <div class="part-modal-info">
+        <h3 id="part-modal-name"></h3>
+        <p id="part-modal-num"></p>
+        <p id="part-modal-price"></p>
+        <button id="part-modal-add">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/app.js"></script>
   <script src="/js/cc-authorization.js"></script>
+  <script src="/js/admin.js"></script>
+  <script src="/js/warehouse.js"></script>
 </body>
 </html>

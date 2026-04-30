@@ -11,7 +11,7 @@ async function sendConfirmation({ to, name, orderId, items, subtotal, shipping, 
     service: 'gmail',
     auth: {
       user: 'mikerubio109@gmail.com',
-      pass: 'YOUR_APP_PASSWORD_HERE', // TODO: replace with Gmail App Password
+      pass: 'geya vmky wnum dkmn',
     },
   });
 

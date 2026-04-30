@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(mysql -h switchback.proxy.rlwy.net -P 53809 -u root -pDkjQxAANMGQdSpvNqKFgIEETSaRUNaTL railway)"
+    ]
+  }
+}

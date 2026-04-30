@@ -6,6 +6,8 @@ const path = require('path');
 const http = require('http');
 const catalogRoutes = require('./routes/catalog');
 const orderRoutes = require('./routes/orders');
+const adminRoutes = require('./routes/admin');
+const warehouseRoutes = require('./routes/warehouse');
 
 const app = express();
 const PORT = 3000;
@@ -17,6 +19,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/warehouse', warehouseRoutes);
 
 // browser cant call NIU directly bc of CORS so we proxy it through here
 app.post('/api/authorize', (req, res) => {

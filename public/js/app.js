@@ -2,6 +2,9 @@
 // Handles catalog browsing, search, and cart management
 
 const cart = {}; // { partNumber: { part, qty } }
+const PAGE_SIZE = 30;
+let currentPage = 1;
+let allParts = [];
 
 // --- Page navigation ---
 
@@ -19,6 +22,9 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(`${name}-page`).classList.add('active');
   if (name === 'cart') renderCart();
+  if (name === 'admin') { loadOrders(); loadShippingRates(); }
+  if (name === 'warehouse') loadPackOrders();
+  if (name === 'receiving') loadInventory();
 }
 
 // --- Catalog ---
@@ -42,25 +48,65 @@ async function loadCatalog(query = '') {
 
     if (parts.length === 0) {
       grid.innerHTML = '<p class="loading">No parts found.</p>';
+      document.getElementById('pagination').innerHTML = '';
       return;
     }
 
-    grid.innerHTML = parts.map(part => `
-      <div class="part-card">
-        <img src="${part.pictureURL || ''}" alt="${part.description}"
-             onerror="this.src='/img/placeholder.png'; this.onerror=null;" />
-        <div class="part-name">${part.description}</div>
-        <div class="part-price">$${parseFloat(part.price).toFixed(2)}</div>
-        <div class="part-num">Part #${part.number}</div>
-        <button onclick="addToCart(${JSON.stringify(part).replace(/"/g, '&quot;')})">
-          Add to Cart
-        </button>
-      </div>
-    `).join('');
+    // sort based on dropdown
+    const sort = document.getElementById('sort-select').value;
+    if (sort === 'price-asc')  parts.sort((a, b) => a.price - b.price);
+    if (sort === 'price-desc') parts.sort((a, b) => b.price - a.price);
+    if (sort === 'name-asc')   parts.sort((a, b) => a.description.localeCompare(b.description));
+    if (sort === 'name-desc')  parts.sort((a, b) => b.description.localeCompare(a.description));
+
+    allParts = parts;
+    currentPage = 1;
+    renderPage();
 
   } catch (err) {
     grid.innerHTML = '<p class="error-msg">Could not connect to server.</p>';
   }
+}
+
+function renderPage() {
+  const grid = document.getElementById('catalog-grid');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageParts = allParts.slice(start, start + PAGE_SIZE);
+  const totalPages = Math.ceil(allParts.length / PAGE_SIZE);
+
+  grid.innerHTML = pageParts.map(part => `
+    <div class="part-card" onclick="openPartModal(${JSON.stringify(part).replace(/"/g, '&quot;')})">
+      <img src="${part.pictureURL || ''}" alt="${part.description}"
+           onerror="this.src='/img/placeholder.png'; this.onerror=null;" />
+      <div class="part-name">${part.description}</div>
+      <div class="part-price">$${parseFloat(part.price).toFixed(2)}</div>
+      <div class="part-num">Part #${part.number}</div>
+      <button onclick="event.stopPropagation(); addToCart(${JSON.stringify(part).replace(/"/g, '&quot;')})">
+        Add to Cart
+      </button>
+    </div>
+  `).join('');
+
+  // pagination controls
+  const pag = document.getElementById('pagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+  let pageButtons = '';
+  for (let i = 1; i <= totalPages; i++) {
+    pageButtons += `<button onclick="goToPage(${i})" class="${i === currentPage ? 'page-active' : ''}">${i}</button>`;
+  }
+
+  pag.innerHTML = `
+    <button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>
+    ${pageButtons}
+    <button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>
+  `;
+}
+
+function goToPage(page) {
+  currentPage = page;
+  renderPage();
+  window.scrollTo(0, 0);
 }
 
 document.getElementById('search-btn').addEventListener('click', () => {
@@ -75,6 +121,16 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 
 document.getElementById('search-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('search-btn').click();
+});
+
+document.getElementById('sort-select').addEventListener('change', () => {
+  const sort = document.getElementById('sort-select').value;
+  if (sort === 'price-asc')  allParts.sort((a, b) => a.price - b.price);
+  if (sort === 'price-desc') allParts.sort((a, b) => b.price - a.price);
+  if (sort === 'name-asc')   allParts.sort((a, b) => a.description.localeCompare(b.description));
+  if (sort === 'name-desc')  allParts.sort((a, b) => b.description.localeCompare(a.description));
+  currentPage = 1;
+  renderPage();
 });
 
 // --- Cart ---
@@ -273,6 +329,43 @@ document.getElementById('checkout-form').addEventListener('submit', async e => {
     btn.disabled = false;
     btn.textContent = 'Place Order';
   }
+});
+
+// part preview modal
+let _modalPart = null;
+
+function openPartModal(part) {
+  _modalPart = part;
+  document.getElementById('part-modal-img').src = part.pictureURL || '';
+  document.getElementById('part-modal-img').onerror = function() { this.src = '/img/placeholder.png'; };
+  document.getElementById('part-modal-name').textContent = part.description;
+  document.getElementById('part-modal-num').textContent = `Part #${part.number}`;
+  document.getElementById('part-modal-price').textContent = `$${parseFloat(part.price).toFixed(2)}`;
+  document.getElementById('part-modal').classList.remove('hidden');
+}
+
+document.getElementById('part-modal-close').addEventListener('click', () => {
+  document.getElementById('part-modal').classList.add('hidden');
+});
+
+document.getElementById('part-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('part-modal'))
+    document.getElementById('part-modal').classList.add('hidden');
+});
+
+document.getElementById('part-modal-add').addEventListener('click', () => {
+  if (_modalPart) addToCart(_modalPart);
+  document.getElementById('part-modal').classList.add('hidden');
+});
+
+// hamburger menu toggle
+document.querySelector('.menu-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.querySelector('.menu-items').classList.toggle('hidden');
+});
+
+document.addEventListener('click', () => {
+  document.querySelector('.menu-items').classList.add('hidden');
 });
 
 // Load catalog on startup
