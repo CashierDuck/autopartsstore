@@ -1,13 +1,11 @@
-// Client-side app logic
-// Handles catalog browsing, search, and cart management
+// main frontend logic - catalog, cart, checkout, page switching
 
-const cart = {}; // { partNumber: { part, qty } }
+const cart = {};
 const PAGE_SIZE = 30;
 let currentPage = 1;
 let allParts = [];
 
-// --- Staff login gate ---
-
+// pages that require staff login
 const PROTECTED_PAGES = ['admin', 'warehouse', 'receiving'];
 let staffLoggedIn = false;
 let pendingPage = null;
@@ -16,6 +14,7 @@ let pendingLink = null;
 function showLoginModal(page, link) {
   pendingPage = page;
   pendingLink = link;
+  // clear out old input
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
   document.getElementById('login-error').classList.add('hidden');
@@ -45,13 +44,11 @@ document.getElementById('login-cancel-btn').addEventListener('click', () => {
   pendingLink = null;
 });
 
-// submit on Enter in password field
 document.getElementById('login-pass').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('login-submit-btn').click();
 });
 
-// --- Page navigation ---
-
+// nav link click - check if page is protected before switching
 document.querySelectorAll('.nav-link').forEach(link => {
   link.addEventListener('click', e => {
     e.preventDefault();
@@ -69,14 +66,14 @@ document.querySelectorAll('.nav-link').forEach(link => {
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(`${name}-page`).classList.add('active');
+  // load data when switching to these pages
   if (name === 'cart') renderCart();
   if (name === 'admin') { loadOrders(); loadShippingRates(); }
   if (name === 'warehouse') loadPackOrders();
   if (name === 'receiving') loadInventory();
 }
 
-// --- Catalog ---
-
+// pull parts from server, apply current sort, then render first page
 async function loadCatalog(query = '') {
   const grid = document.getElementById('catalog-grid');
   grid.innerHTML = '<p class="loading">Loading...</p>';
@@ -100,7 +97,6 @@ async function loadCatalog(query = '') {
       return;
     }
 
-    // sort based on dropdown
     const sort = document.getElementById('sort-select').value;
     if (sort === 'price-asc')  parts.sort((a, b) => a.price - b.price);
     if (sort === 'price-desc') parts.sort((a, b) => b.price - a.price);
@@ -116,6 +112,7 @@ async function loadCatalog(query = '') {
   }
 }
 
+// slice allParts for the current page and build the grid + page buttons
 function renderPage() {
   const grid = document.getElementById('catalog-grid');
   const start = (currentPage - 1) * PAGE_SIZE;
@@ -135,7 +132,6 @@ function renderPage() {
     </div>
   `).join('');
 
-  // pagination controls
   const pag = document.getElementById('pagination');
   if (totalPages <= 1) { pag.innerHTML = ''; return; }
 
@@ -171,6 +167,7 @@ document.getElementById('search-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('search-btn').click();
 });
 
+// re-sort in memory and re-render, no need to hit the server again
 document.getElementById('sort-select').addEventListener('change', () => {
   const sort = document.getElementById('sort-select').value;
   if (sort === 'price-asc')  allParts.sort((a, b) => a.price - b.price);
@@ -181,7 +178,7 @@ document.getElementById('sort-select').addEventListener('change', () => {
   renderPage();
 });
 
-// --- Cart ---
+// --- cart ---
 
 function addToCart(part) {
   if (cart[part.number]) {
@@ -233,7 +230,7 @@ function renderCart() {
   summary.classList.remove('hidden');
 }
 
-// Shipping is based on total weight — brackets match admin settings spec
+// weight brackets - these match what's in the shipping_rates table
 function calcShipping(items) {
   const totalWeight = items.reduce((sum, { part, qty }) => sum + (part.weight || 0) * qty, 0);
   if (totalWeight <= 0) return 0;
@@ -282,11 +279,13 @@ function populateCheckoutSummary() {
   document.getElementById('co-total').textContent = (subtotal + shipping).toFixed(2);
 }
 
+// auto-format card number as user types (groups of 4)
 document.getElementById('co-cc').addEventListener('input', e => {
   let v = e.target.value.replace(/\D/g, '').slice(0, 16);
   e.target.value = v.replace(/(.{4})/g, '$1 ').trim();
 });
 
+// auto-format expiration date MM/YYYY
 document.getElementById('co-exp').addEventListener('input', e => {
   let v = e.target.value.replace(/\D/g, '').slice(0, 6);
   if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
@@ -327,10 +326,11 @@ document.getElementById('checkout-form').addEventListener('submit', async e => {
   btn.textContent = 'Processing...';
 
   try {
+    // unique transaction id for the NIU processor
     const transId = `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
     const authResult = await creditCardAuthorization(transId, cc, name, exp, total.toFixed(2));
 
-    // NIU returns a json object, check for errors before continuing
+    // NIU returns a JSON object, not just a number - parse it out
     let authCode = authResult;
     try {
       const parsed = JSON.parse(authResult);
@@ -340,7 +340,7 @@ document.getElementById('checkout-form').addEventListener('submit', async e => {
         return;
       }
       if (parsed.authorization) authCode = String(parsed.authorization);
-    } catch { /* plain string, check for Error prefix */ }
+    } catch { /* already a plain string */ }
 
     if (!authCode || authCode.startsWith('Error')) {
       errEl.textContent = authCode || 'Payment declined. Please check your card details.';
@@ -348,6 +348,7 @@ document.getElementById('checkout-form').addEventListener('submit', async e => {
       return;
     }
 
+    // save the order to our db
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -361,6 +362,7 @@ document.getElementById('checkout-form').addEventListener('submit', async e => {
       return;
     }
 
+    // clear cart and show confirmation
     Object.keys(cart).forEach(k => delete cart[k]);
     updateCartCount();
 
@@ -379,7 +381,8 @@ document.getElementById('checkout-form').addEventListener('submit', async e => {
   }
 });
 
-// part preview modal
+// --- part preview modal ---
+
 let _modalPart = null;
 
 function openPartModal(part) {
@@ -396,6 +399,7 @@ document.getElementById('part-modal-close').addEventListener('click', () => {
   document.getElementById('part-modal').classList.add('hidden');
 });
 
+// close modal if clicking outside the box
 document.getElementById('part-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('part-modal'))
     document.getElementById('part-modal').classList.add('hidden');
@@ -406,7 +410,7 @@ document.getElementById('part-modal-add').addEventListener('click', () => {
   document.getElementById('part-modal').classList.add('hidden');
 });
 
-// hamburger menu toggle
+// hamburger - toggle menu, close if clicking anywhere else
 document.querySelector('.menu-btn').addEventListener('click', e => {
   e.stopPropagation();
   document.querySelector('.menu-items').classList.toggle('hidden');
@@ -416,5 +420,4 @@ document.addEventListener('click', () => {
   document.querySelector('.menu-items').classList.add('hidden');
 });
 
-// Load catalog on startup
 loadCatalog();

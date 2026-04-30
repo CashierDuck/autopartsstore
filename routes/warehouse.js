@@ -1,11 +1,11 @@
-// warehouse routes — pack orders, ship orders, load inventory
+// warehouse routes - pack orders, ship orders, manage inventory
 
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const db = require('../localdb');
 
-// get all authorized orders ready to pack
+// orders that are authorized and ready to be packed
 router.get('/pack', async (req, res) => {
   try {
     const [orders] = await db.query(
@@ -17,7 +17,7 @@ router.get('/pack', async (req, res) => {
   }
 });
 
-// get a single order with items for packing
+// single order with items for the packing list view
 router.get('/pack/:id', async (req, res) => {
   try {
     const [[order]] = await db.query('SELECT * FROM orders WHERE id = ?', [req.params.id]);
@@ -30,7 +30,6 @@ router.get('/pack/:id', async (req, res) => {
   }
 });
 
-// mark order as packed
 router.post('/pack/:id', async (req, res) => {
   try {
     const [[order]] = await db.query('SELECT status FROM orders WHERE id = ?', [req.params.id]);
@@ -46,7 +45,19 @@ router.post('/pack/:id', async (req, res) => {
   }
 });
 
-// mark order as shipped and email the customer
+// orders that are packed and ready to go out
+router.get('/ship', async (req, res) => {
+  try {
+    const [orders] = await db.query(
+      "SELECT * FROM orders WHERE status = 'packed' ORDER BY created_at ASC"
+    );
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not load orders.' });
+  }
+});
+
+// mark as shipped and email the customer
 router.post('/ship/:id', async (req, res) => {
   try {
     const [[order]] = await db.query('SELECT * FROM orders WHERE id = ?', [req.params.id]);
@@ -57,7 +68,7 @@ router.post('/ship/:id', async (req, res) => {
 
     await db.query("UPDATE orders SET status = 'shipped' WHERE id = ?", [req.params.id]);
 
-    // send shipping confirmation email
+    // send shipping notification - don't let email failure break the response
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -83,19 +94,7 @@ router.post('/ship/:id', async (req, res) => {
   }
 });
 
-// get all packed orders ready to ship
-router.get('/ship', async (req, res) => {
-  try {
-    const [orders] = await db.query(
-      "SELECT * FROM orders WHERE status = 'packed' ORDER BY created_at ASC"
-    );
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json({ error: 'Could not load orders.' });
-  }
-});
-
-// add inventory when new stock arrives
+// add stock when new parts arrive - upsert so duplicates just add to qty
 router.post('/inventory', async (req, res) => {
   const { part_number, qty } = req.body;
   if (!part_number || !qty) {
@@ -103,7 +102,6 @@ router.post('/inventory', async (req, res) => {
   }
 
   try {
-    // add to existing qty or insert new row
     await db.query(
       `INSERT INTO inventory (part_number, qty_on_hand) VALUES (?, ?)
        ON DUPLICATE KEY UPDATE qty_on_hand = qty_on_hand + ?`,
@@ -115,7 +113,6 @@ router.post('/inventory', async (req, res) => {
   }
 });
 
-// get current inventory
 router.get('/inventory', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM inventory ORDER BY part_number ASC');

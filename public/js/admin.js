@@ -1,6 +1,7 @@
-// admin page logic — manage orders and shipping rates
+// admin page - view/filter orders, cancel orders, edit shipping rates
 
 async function loadOrders() {
+  // grab whatever filters are set
   const status   = document.getElementById('filter-status').value;
   const from     = document.getElementById('filter-from').value;
   const to       = document.getElementById('filter-to').value;
@@ -34,6 +35,7 @@ async function loadOrders() {
   `).join('');
 }
 
+// load a single order and show it in the modal
 async function openOrder(id) {
   const res = await fetch(`/api/admin/orders/${id}`);
   const order = await res.json();
@@ -56,7 +58,7 @@ async function openOrder(id) {
     </tr>
   `).join('');
 
-  // only show cancel button if order hasn't shipped yet
+  // only show cancel button for orders that haven't been packed yet
   const cancelBtn = document.getElementById('modal-cancel-btn');
   if (order.status === 'authorized') {
     cancelBtn.classList.remove('hidden');

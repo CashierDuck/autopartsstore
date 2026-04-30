@@ -1,5 +1,5 @@
-// handles saving the order to the db and sending the confirmation email
-// cc auth already happened on the frontend before this gets called
+// handles saving the order and sending a confirmation email
+// cc auth happens on the frontend before this gets called
 
 const express = require('express');
 const router = express.Router();
@@ -27,6 +27,7 @@ async function sendConfirmation({ to, name, orderId, items, subtotal, shipping, 
   });
 }
 
+// look up the right shipping fee based on total weight
 async function calcShipping(totalWeight) {
   const [rates] = await db.query(
     'SELECT fee FROM shipping_rates WHERE max_weight >= ? ORDER BY max_weight ASC LIMIT 1',
@@ -48,7 +49,7 @@ router.post('/', async (req, res) => {
   const total = subtotal + shipping;
   const cc_last4 = cc.replace(/\s/g, '').slice(-4);
 
-  // NIU sends back a whole json object, we just want the authorization number
+  // NIU returns a full JSON object - pull out just the auth number to store
   let authCode = authNumber;
   try {
     const parsed = JSON.parse(authNumber);
@@ -64,6 +65,7 @@ router.post('/', async (req, res) => {
     );
     orderId = result.insertId;
 
+    // insert each line item separately
     for (const item of items) {
       await db.query(
         `INSERT INTO order_items (order_id, part_number, description, price, weight, qty)
@@ -76,6 +78,7 @@ router.post('/', async (req, res) => {
     return res.status(500).json({ error: 'Failed to save order. Contact support.' });
   }
 
+  // email failure shouldn't break the order
   try {
     await sendConfirmation({
       to: email, name, orderId, items,

@@ -1,18 +1,18 @@
-// admin routes — manage orders and update store settings
+// admin routes - manage orders and update shipping rates
 
 const express = require('express');
 const router = express.Router();
 const db = require('../localdb');
 
-// get all orders, optional filters: status, date range, price range
+// get all orders, filters are all optional
 router.get('/orders', async (req, res) => {
   const { status, from, to, minPrice, maxPrice } = req.query;
   let query = 'SELECT * FROM orders WHERE 1=1';
   const params = [];
 
-  if (status) { query += ' AND status = ?'; params.push(status); }
-  if (from)   { query += ' AND created_at >= ?'; params.push(from); }
-  if (to)     { query += ' AND created_at <= ?'; params.push(to + ' 23:59:59'); }
+  if (status)   { query += ' AND status = ?'; params.push(status); }
+  if (from)     { query += ' AND created_at >= ?'; params.push(from); }
+  if (to)       { query += ' AND created_at <= ?'; params.push(to + ' 23:59:59'); }
   if (minPrice) { query += ' AND total >= ?'; params.push(minPrice); }
   if (maxPrice) { query += ' AND total <= ?'; params.push(maxPrice); }
 
@@ -27,7 +27,7 @@ router.get('/orders', async (req, res) => {
   }
 });
 
-// get a single order with its line items
+// get one order with its line items
 router.get('/orders/:id', async (req, res) => {
   try {
     const [[order]] = await db.query('SELECT * FROM orders WHERE id = ?', [req.params.id]);
@@ -41,7 +41,7 @@ router.get('/orders/:id', async (req, res) => {
   }
 });
 
-// cancel an order — only allowed if status is authorized
+// can only cancel if it hasn't been packed yet
 router.post('/orders/:id/cancel', async (req, res) => {
   try {
     const [[order]] = await db.query('SELECT status FROM orders WHERE id = ?', [req.params.id]);
@@ -58,7 +58,6 @@ router.post('/orders/:id/cancel', async (req, res) => {
   }
 });
 
-// get shipping rates
 router.get('/shipping', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM shipping_rates ORDER BY max_weight ASC');
@@ -68,7 +67,6 @@ router.get('/shipping', async (req, res) => {
   }
 });
 
-// update a shipping rate
 router.post('/shipping/:id', async (req, res) => {
   const { max_weight, fee } = req.body;
   try {

@@ -1,28 +1,27 @@
-// main server file, sets up express and all the routes
+// main server - sets up express, routes, and the CC proxy
 
 const express = require('express');
 const path = require('path');
-
 const http = require('http');
+
 const catalogRoutes = require('./routes/catalog');
 const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const warehouseRoutes = require('./routes/warehouse');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/warehouse', warehouseRoutes);
 
-// browser cant call NIU directly bc of CORS so we proxy it through here
+// browser can't call NIU directly because of CORS, so we proxy it here server-side
 app.post('/api/authorize', (req, res) => {
   const payload = JSON.stringify({
     vendor: 'Group 6A',
@@ -59,7 +58,7 @@ app.post('/api/authorize', (req, res) => {
   request.end();
 });
 
-// everything else just loads the main page
+// everything else loads the SPA
 app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

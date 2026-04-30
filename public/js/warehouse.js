@@ -1,9 +1,8 @@
-// warehouse page logic — pack orders, ship orders, load inventory
+// warehouse page - pack orders, ship orders, log incoming inventory
 
 let currentPackOrderId = null;
 
-// --- tabs ---
-
+// tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -41,6 +40,7 @@ async function loadPackOrders() {
   `).join('');
 }
 
+// show packing list for a specific order
 async function openPackOrder(id) {
   const res = await fetch(`/api/warehouse/pack/${id}`);
   const order = await res.json();
@@ -110,7 +110,7 @@ async function shipOrder(id) {
   }
 }
 
-// --- receiving / inventory ---
+// --- receiving ---
 
 document.getElementById('receiving-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -131,7 +131,7 @@ document.getElementById('receiving-form').addEventListener('submit', async e => 
     msg.style.color = 'green';
     document.getElementById('recv-part').value = '';
     document.getElementById('recv-qty').value = '';
-    loadInventory();
+    loadInventory(); // refresh table
   } else {
     msg.textContent = data.error;
     msg.style.color = '#e94560';
